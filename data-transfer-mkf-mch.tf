@@ -56,7 +56,7 @@ resource "yandex_vpc_security_group" "security-group" {
   }
 
   ingress {
-    description    = "Allow connections with ClickHouse client to the Managed Service for ClickHouse® cluster from the Internet"
+    description    = "Allow connections with clickhouse-client to the Managed Service for ClickHouse® cluster from the Internet"
     protocol       = "TCP"
     port           = 9440
     v4_cidr_blocks = ["0.0.0.0/0"]
