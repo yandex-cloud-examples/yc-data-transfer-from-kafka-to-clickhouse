@@ -89,7 +89,7 @@ resource "yandex_mdb_kafka_cluster" "kafka-cluster" {
 
   config {
     brokers_count    = 1
-    version          = "3.0"
+    version          = "3.5"
     zones            = ["ru-central1-a"]
     assign_public_ip = true
     kafka {
@@ -98,6 +98,7 @@ resource "yandex_mdb_kafka_cluster" "kafka-cluster" {
         disk_type_id       = "network-hdd"
         disk_size          = 10 # GB
       }
+      kafka_config {}
     }
   }
 
@@ -160,16 +161,23 @@ resource "yandex_mdb_clickhouse_cluster" "clickhouse-cluster" {
     assign_public_ip = true # Required for connection from the Internet
   }
 
-  database {
-    name = local.target_db_name
+  lifecycle {
+    ignore_changes = [database, user,]
   }
+}
 
-  user {
-    name     = local.target_user
-    password = local.target_password
-    permission {
-      database_name = local.target_db_name
-    }
+resource "yandex_mdb_clickhouse_database" "db" {
+  cluster_id = yandex_mdb_clickhouse_cluster.clickhouse-cluster.id
+  name       = local.target_db_name
+}
+
+resource "yandex_mdb_clickhouse_user" "user" {
+  cluster_id = yandex_mdb_clickhouse_cluster.clickhouse-cluster.id
+  name       = local.target_user
+  password   = local.target_password
+
+  permission {
+    database_name = yandex_mdb_clickhouse_database.db.name
   }
 }
 
