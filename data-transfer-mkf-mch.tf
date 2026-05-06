@@ -211,7 +211,7 @@ resource "yandex_mdb_clickhouse_user" "user" {
 #  }
 #}
 
-#resource "yandex_datatransfer_transfer" "mysql-transfer" {
+#resource "yandex_datatransfer_transfer" "kafka-transfer" {
 #  description = "Transfer from the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®"
 #  name        = local.transfer_name
 #  source_id   = local.source_endpoint_id
