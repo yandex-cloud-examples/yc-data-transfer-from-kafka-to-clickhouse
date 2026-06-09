@@ -27,8 +27,8 @@ locals {
   subnet_name          = "subnet-a"                 # Name of the subnet
   source_cluster_name  = "kafka-cluster"            # Name of the Apache Kafka® cluster
   target_cluster_name  = "clickhouse-cluster"       # Name of the ClickHouse® cluster
+  source_endpoint_name = "mkf-source"               # Name of the source endpoint for the Managed Service for Apache Kafka® cluster
   target_endpoint_name = "mch-target"               # Name of the target endpoint for the Managed Service for ClickHouse® cluster
-  source_endpoint_name = "mkf-source"               # Name of the target endpoint for the Managed Service for Apache Kafka® cluster
   transfer_name        = "transfer-from-mkf-to-mch" # Name of the transfer between the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®
 }
 
