@@ -194,7 +194,7 @@ resource "yandex_mdb_clickhouse_user" "user" {
 
 # Data Transfer infrastructure
 
-resource "yandex_datatransfer_endpoint" "mch-source" {
+resource "yandex_datatransfer_endpoint" "mkf-source" {
   description = "Source endpoint for the Managed Service for Apache Kafka® cluster"
   count       = local.transfer_enabled
   name        = local.source_endpoint_name
@@ -298,7 +298,7 @@ resource "yandex_datatransfer_transfer" "kafka-transfer" {
   description = "Transfer from the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®"
   count       = local.transfer_enabled
   name        = local.transfer_name
-  source_id   = yandex_datatransfer_endpoint.mch-source[0].id
+  source_id   = yandex_datatransfer_endpoint.mkf-source[0].id
   target_id   = yandex_datatransfer_endpoint.mch-target[0].id
   type        = "INCREMENT_ONLY" # Replicate data from the source Apache Kafka® topics
 }
