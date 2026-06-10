@@ -13,19 +13,22 @@ locals {
   source_user_consumer     = "" # Name of the consumer
   source_password_consumer = "" # Password of the consumer
   source_topic_name        = "" # Topic name
-  #source_endpoint_id       = "" # Source endpoint ID
 
   # Target database settings:
   target_db_name  = "" # Database name
   target_user     = "" # Username
   target_password = "" # User's password
 
+  # Specify this setting ONLY AFTER the clusters are created. Then run "terraform apply" command again.
+  transfer_enabled   = 0  # Value '0' disables the creation of endpoints and transfer. Set to '1' to create endpoints and enable the transfer.
+
   # The following settings are predefined. Change them only if necessary.
   network_name         = "network"                  # Name of the network
   subnet_name          = "subnet-a"                 # Name of the subnet
   source_cluster_name  = "kafka-cluster"            # Name of the Apache Kafka® cluster
   target_cluster_name  = "clickhouse-cluster"       # Name of the ClickHouse® cluster
-  target_endpoint_name = "mch-target"               # Name of the target endpoint for the Managed Service for Apache Kafka® cluster
+  source_endpoint_name = "mkf-source"               # Name of the source endpoint for the Managed Service for Apache Kafka® cluster
+  target_endpoint_name = "mch-target"               # Name of the target endpoint for the Managed Service for ClickHouse® cluster
   transfer_name        = "transfer-from-mkf-to-mch" # Name of the transfer between the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®
 }
 
@@ -191,30 +194,111 @@ resource "yandex_mdb_clickhouse_user" "user" {
 
 # Data Transfer infrastructure
 
-#resource "yandex_datatransfer_endpoint" "mch-target" {
-#  description = "Target endpoint for the Managed Service for ClickHouse® cluster"
-#  name        = local.target_endpoint_name
-#  settings {
-#    clickhouse_target {
-#      connection {
-#        connection_options {
-#          mdb_cluster_id = yandex_mdb_clickhouse_cluster_v2.clickhouse-cluster.id
-#          database       = local.target_db_name
-#          user           = local.target_user
-#          password {
-#            raw = local.target_password
-#          }
-#        }
-#      }
-#      cleanup_policy = "CLICKHOUSE_CLEANUP_POLICY_DROP"
-#    }
-#  }
-#}
+resource "yandex_datatransfer_endpoint" "mkf-source" {
+  description = "Source endpoint for the Managed Service for Apache Kafka® cluster"
+  count       = local.transfer_enabled
+  name        = local.source_endpoint_name
 
-#resource "yandex_datatransfer_transfer" "kafka-transfer" {
-#  description = "Transfer from the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®"
-#  name        = local.transfer_name
-#  source_id   = local.source_endpoint_id
-#  target_id   = yandex_datatransfer_endpoint.mch-target.id
-#  type        = "INCREMENT_ONLY" # Replicate data from the source Apache Kafka® topics
-#}
+  settings {
+    kafka_source {
+      connection {
+        cluster_id = yandex_mdb_kafka_cluster.kafka-cluster.id
+      }
+
+      auth {
+        sasl {
+          user = local.source_user_consumer
+
+          password {
+            raw = local.source_password_consumer
+          }
+        }
+      }
+
+      topic_names = [local.source_topic_name]
+
+      parser {
+        json_parser {
+          data_schema {
+            fields {
+              fields {
+                name = "device_id"
+                type = "STRING"
+              }
+
+              fields {
+                name = "datetime"
+                type = "DATETIME"
+              }
+
+              fields {
+                name = "latitude"
+                type = "DOUBLE"
+              }
+
+              fields {
+                name = "longitude"
+                type = "DOUBLE"
+              }
+
+              fields {
+                name = "altitude"
+                type = "DOUBLE"
+              }
+
+              fields {
+                name = "speed"
+                type = "DOUBLE"
+              }
+
+              fields {
+                name = "battery_voltage"
+                type = "ANY"
+              }
+
+              fields {
+                name = "cabin_temperature"
+                type = "DOUBLE"
+              }
+
+              fields {
+                name = "fuel_level"
+                type = "ANY"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "yandex_datatransfer_endpoint" "mch-target" {
+  description = "Target endpoint for the Managed Service for ClickHouse® cluster"
+  count       = local.transfer_enabled
+  name        = local.target_endpoint_name
+  settings {
+    clickhouse_target {
+      connection {
+        connection_options {
+          mdb_cluster_id = yandex_mdb_clickhouse_cluster_v2.clickhouse-cluster.id
+          database       = local.target_db_name
+          user           = local.target_user
+          password {
+            raw = local.target_password
+          }
+        }
+      }
+      cleanup_policy = "CLICKHOUSE_CLEANUP_POLICY_DROP"
+    }
+  }
+}
+
+resource "yandex_datatransfer_transfer" "kafka-transfer" {
+  description = "Transfer from the Managed Service for Apache Kafka® to the Managed Service for ClickHouse®"
+  count       = local.transfer_enabled
+  name        = local.transfer_name
+  source_id   = yandex_datatransfer_endpoint.mkf-source[0].id
+  target_id   = yandex_datatransfer_endpoint.mch-target[0].id
+  type        = "INCREMENT_ONLY" # Replicate data from the source Apache Kafka® topics
+}
